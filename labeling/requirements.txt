@@ -1,0 +1,4 @@
+requests
+transformers>=4.56
+accelerate
+bitsandbytes

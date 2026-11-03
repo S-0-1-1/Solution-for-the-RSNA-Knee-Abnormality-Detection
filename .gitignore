@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+work/
+models/
+runs/
+answers/
+labels/
