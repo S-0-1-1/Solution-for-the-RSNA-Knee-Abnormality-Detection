@@ -7,55 +7,23 @@ the mean AUC over the 12 findings.
 
 Public leaderboard: **0.938**. Only the competition data is used for training, with no external MRI data.
 
-## Method
+The idea is to find the bones first, use them to define 8 knee regions, then train a model to detect findings in each region.
 
-The idea is to look where each finding lives. The bones are segmented first, eight anatomical regions are placed from
-them, and the classifier only sees crops of those regions, in the series where each region is best seen.
+1. Series. DICOM information is used to select the best sagittal MRI scan for bone segmentation.
 
-**1. Series.** The DICOM headers are read for every series: plane, fat suppression, sequence, size. The best sagittal
-series is chosen for segmentation: spin echo before gradient echo, 2D before 3D, a normal number of slices.
+2. Bones. MRAnnotator is used to segment the femur, patella, fibula and tibia. The masks are cleaned, and another scan is tried if needed.
 
-**2. Bones.** [MRAnnotator](https://arxiv.org/abs/2402.01031) (nnU-Net, knee and shoulder model) segments the femur,
-patella, fibula and tibia on that series. The labels are then cleaned: connected pieces are reassigned (a femur and tibia
-segmented as one object are split, the patella and fibula are the best candidates by size and position), and holes are
-filled. When the first series gives a poor mask, the second sagittal series is tried and the better one is kept.
+3. Side and regions. The knee side is identified using the fibula or DICOM information. Eight regions are defined around the bones. If segmentation fails, an atlas is used instead.
 
-**3. Side and regions.** The knee side comes from the fibula (lateral to the tibia), or from the DICOM laterality tag when
-the fibula is not found. Eight boxes are built from the bones in patient coordinates: medial and lateral tibiofemoral
-compartments, intercondylar notch, patellofemoral joint, MCL, whole joint, popliteal fossa and all bones. When the bones
-are not usable, the boxes come from an atlas (median box offsets over the training studies) placed at the knee centre or
-at the centre of the field of view.
+4. Crops. 21 crops are extracted from up to 5 MRI series. Each crop is 128 x 128 pixels, with up to 24 slices. Right knees are flipped to match left knees.
 
-**4. Crops.** Each region is cropped from up to five series (sagittal PD/T1, sagittal fluid sensitive, coronal fluid
-sensitive, coronal PD/T1, axial fluid sensitive), 21 crops in total. A crop is resampled in the slice planes of its own
-series, so two thick slices are never mixed: 128 x 128 pixels, up to 24 slices (16 for the large regions), a 4 mm margin,
-thin 3D series grouped into 3 mm slabs. Right knees are mirrored so every knee looks like a left knee. Intensities are
-scaled by the 0.5 and 99.5 percentiles inside the whole-knee box.
+5. Model. ResNet18 processes groups of 3 neighbouring slices. A Transformer combines the information, and each finding focuses on the most relevant regions.
 
-**5. Model.** A resnet18d (ImageNet weights) reads windows of three neighbouring slices, 8 per crop in training and 12
-at test time. Each window becomes a token with a crop embedding and its slice position. One transformer layer mixes all
-tokens of the study, then every finding has its own attention query, with a prior that favours the regions where the
-finding is seen (for example the notch for the ACL, the popliteal fossa for a Baker's cyst).
+6. Labels. Only 58 studies have radiologist labels. For the others, language models extract labels from radiology reports. Two label sets are used: report labels and consensus labels (report labels combined with model predictions).
 
-**6. Labels.** Only 58 training studies have radiologist labels. For the other studies the labels come from the
-radiology reports: language models read every report in its original language and gave, for each finding, an ordinal
-state (negative, not mentioned, equivocal, mild, moderate, severe), which was turned into a soft label between 0 and 1.
-Two label sets are used:
+7. Training. The model is trained for 12 epochs using AdamW, data augmentation and mixed precision. Five-fold cross-validation is used, and the best model from each fold is kept.
 
-- report labels: the soft labels from the reports;
-- consensus labels: half the report label and half a teacher, the mean of out-of-fold predictions of the report models and
-  of a second crop model. No teacher prediction comes from a model trained on that study.
-
-The 58 radiologist-labelled studies keep their labels in both sets and count three times in the loss.
-
-**7. Training.** Soft binary cross entropy, AdamW (2e-4 for the encoder, 5e-4 for the rest), warm-up then cosine decay,
-batch 4 with 2 accumulation steps, 12 epochs, EMA of the weights, mixed precision. Augmentation runs on the GPU: rotation,
-scale, shift, contrast, brightness, gamma, and dropping a whole crop now and then. The five folds are stratified on the 12
-findings and on the radiologist-labelled studies. The epoch with the lowest validation loss is kept. One fold takes about
-2 hours on a T4.
-
-**8. Prediction.** Every model scores each study four times (no change, rotation of +5 and -5 degrees, zoom 1.05) and the
-probabilities are averaged. Three families of models are averaged with equal weights:
+8. Prediction. Each model predicts the study 4 times using small rotations and zoom changes. The predictions are averaged. Finally, three model families are combined with equal weights.
 
 | family | labels | models |
 |---|---|---|
