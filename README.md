@@ -47,30 +47,7 @@ Per finding, on the 58 radiologist-labelled studies:
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 0.983 | 0.982 | 0.977 | 0.830 | 0.974 | 0.865 | 0.870 | 0.957 | 0.816 | 0.982 | 0.907 | 0.917 |
 
-## Repository
 
-```
-predict.py              DICOM study folders to submission.csv
-train.py                trains the 5 folds, or the models on all studies
-configs/kneenet.json    training settings
-knee/
-  series.py             DICOM headers, series table, choice of the sagittal series
-  bones.py              bone mask cleaning, knee side, region boxes
-  segment.py            bone segmentation (worker)
-  regions.py            final masks, quality flags, region boxes, atlas (worker)
-  crops.py              crop extraction and the crop file format
-  cropping.py           crops for all studies (worker)
-  data.py               slice sampling and GPU augmentation
-  model.py              the classifier
-  fit.py                training of one fold (worker)
-  scoring.py            test-time scoring (worker)
-  findings.py           the 12 findings, region priors, folds
-  launch.py             runs the workers and shows their progress
-kaggle/
-  submit.ipynb          submission notebook (offline)
-  train.ipynb           training notebook
-  build.py              writes both notebooks from the code above
-```
 
 ## Setup
 
