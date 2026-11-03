@@ -38,8 +38,12 @@ python train.py --labels labels/report.csv --crops work/crops --pretrained resne
 
 ## How to test
 
-`predict.py` reads the test DICOM folders and writes `submission.csv`. The `models` folder holds the trained models,
-`blend.json` and the `anatomy.json` written by `prepare.py`. On Kaggle, `kaggle/submit.ipynb` does the same offline.
+The trained weights are in the [v.1.0 release](https://github.com/S-0-1-1/Solution-for-the-RSNA-Knee-Abnormality-Detection/releases/tag/v.1.0).
+Download `models.zip` and unzip it next to the code: you get the `models` folder with the 12 models, `blend.json` and
+`anatomy.json`.
+
+`predict.py` reads the test DICOM folders and writes `submission.csv`. On Kaggle, `kaggle/submit.ipynb` does the same
+offline.
 
 ```
 python predict.py --data <competition folder> --models models --segmentation <MRAnnotator model> --out submission.csv
