@@ -1,0 +1,21 @@
+{
+ "backbone": "resnet18d",
+ "d": 256,
+ "n_layers": 1,
+ "heads": 4,
+ "epochs": 12,
+ "batch": 4,
+ "accum": 2,
+ "batch_eval": 8,
+ "K_train": 8,
+ "K_eval": 12,
+ "min_fov": 0.25,
+ "lr_enc": 0.0002,
+ "lr_head": 0.0005,
+ "wd": 0.02,
+ "ema": 0.999,
+ "gold_w": 3.0,
+ "workers": 2,
+ "log_every": 250,
+ "seed": 42
+}
